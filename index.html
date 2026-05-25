@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TrainTracks — Move Right. Train Smart.</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --black: #0a0a0a;
+    --dark: #111111;
+    --card: #181818;
+    --card2: #1f1f1f;
+    --green: #39ff14;
+    --green-dim: #1a7a08;
+    --pink: #ff2d78;
+    --pink-dim: #7a1038;
+    --white: #f0f0f0;
+    --grey: #888;
+    --border: #2a2a2a;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--dark); }
+  ::-webkit-scrollbar-thumb { background: var(--green); border-radius: 3px; }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 3rem;
+    height: 64px;
+    background: rgba(10,10,10,0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    color: var(--white);
+  }
+  .nav-logo span { color: var(--green); }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--grey);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--green); }
+  .nav-cta {
+    background: var(--green);
+    color: var(--black);
+    border: none;
+    padding: 0.5rem 1.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .nav-cta:hover { background: #5fff35; transform: translateY(-1px); }
+
+  /* ─── HERO ─── */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 120px 3rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-grid-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(57,255,20,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,20,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(57,255,20,0.08) 0%, transparent 70%);
+    top: 10%; right: -10%;
+    pointer-events: none;
+  }
+  .hero-glow-pink {
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(255,45,120,0.07) 0%, transparent 70%);
+    bottom: 5%; left: 5%;
+    pointer-events: none;
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 900px; }
+  .hero-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--green);
+    border: 1px solid var(--green);
+    padding: 0.3rem 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    animation: fadeIn 0.6s ease both;
+  }
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 10vw, 9rem);
+    line-height: 0.92;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    animation: slideUp 0.7s ease 0.1s both;
+  }
+  .hero-title .accent-green { color: var(--green); }
+  .hero-title .accent-pink { color: var(--pink); }
+  .hero-sub {
+    margin-top: 2rem;
+    font-size: 1.1rem;
+    color: var(--grey);
+    max-width: 500px;
+    line-height: 1.7;
+    font-weight: 300;
+    animation: slideUp 0.7s ease 0.2s both;
+  }
+  .hero-btns {
+    display: flex; gap: 1rem; margin-top: 2.5rem;
+    animation: slideUp 0.7s ease 0.3s both;
+  }
+  .btn-primary {
+    background: var(--green);
+    color: var(--black);
+    border: none;
+    padding: 0.9rem 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .btn-primary:hover { background: #5fff35; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(57,255,20,0.3); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--pink);
+    border: 1px solid var(--pink);
+    padding: 0.9rem 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .btn-secondary:hover { background: rgba(255,45,120,0.1); transform: translateY(-2px); }
+  .hero-stats {
+    display: flex; gap: 3rem; margin-top: 4rem;
+    animation: fadeIn 0.8s ease 0.5s both;
+  }
+  .stat-item { display: flex; flex-direction: column; }
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--green);
+    letter-spacing: 2px;
+  }
+  .stat-num.pink { color: var(--pink); }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0.2rem;
+  }
+
+  /* ─── SECTIONS ─── */
+  section { padding: 6rem 3rem; }
+  .section-header { margin-bottom: 3rem; }
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--pink);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 0.8rem;
+  }
+  .section-tag.green { color: var(--green); }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .section-title .g { color: var(--green); }
+  .section-title .p { color: var(--pink); }
+
+  /* ─── FORM CHECK SECTION ─── */
+  #form-check { background: var(--dark); }
+  .form-check-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
+    align-items: start;
+  }
+  .camera-container {
+    position: relative;
+    background: #000;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    aspect-ratio: 4/3;
+  }
+  #webcam { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+  #pose-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    transform: scaleX(-1);
+  }
+  .camera-overlay-idle {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.85);
+    gap: 1rem;
+    transition: opacity 0.3s;
+  }
+  .camera-overlay-idle.hidden { opacity: 0; pointer-events: none; }
+  .camera-icon { font-size: 3rem; }
+  .camera-overlay-idle p {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--grey);
+    text-align: center;
+    max-width: 220px;
+    line-height: 1.6;
+  }
+  .feedback-panel {
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .exercise-selector label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .exercise-selector select {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2339ff14' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+  }
+  .exercise-selector select:focus { border-color: var(--green); }
+  .start-btn {
+    width: 100%;
+    background: var(--green);
+    color: var(--black);
+    border: none;
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .start-btn:hover { background: #5fff35; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(57,255,20,0.3); }
+  .stop-btn {
+    width: 100%;
+    background: transparent;
+    color: var(--pink);
+    border: 1px solid var(--pink);
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+  .stop-btn.visible { display: block; }
+  .stop-btn:hover { background: rgba(255,45,120,0.1); }
+
+  .feedback-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1.2rem;
+  }
+  .feedback-card h4 {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+  }
+  .feedback-item {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .feedback-item:last-child { border-bottom: none; }
+  .feedback-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--grey);
+    margin-top: 4px;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .feedback-dot.good { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .feedback-dot.warn { background: #ffae00; box-shadow: 0 0 8px #ffae00; }
+  .feedback-dot.bad { background: var(--pink); box-shadow: 0 0 8px var(--pink); }
+  .feedback-text {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--white);
+  }
+  .feedback-text span {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--grey);
+    margin-top: 0.2rem;
+  }
+
+  .angle-display {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    padding: 1rem;
+  }
+  .angle-display h4 {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.75rem;
+  }
+  .angle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .angle-item { text-align: center; }
+  .angle-val {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    color: var(--green);
+    letter-spacing: 1px;
+  }
+  .angle-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .tips-box {
+    background: var(--card);
+    border-left: 3px solid var(--pink);
+    padding: 1rem 1.2rem;
+  }
+  .tips-box h4 {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--pink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.6rem;
+  }
+  .tips-box ul { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+  .tips-box li {
+    font-size: 0.8rem;
+    color: var(--grey);
+    padding-left: 1rem;
+    position: relative;
+    line-height: 1.5;
+  }
+  .tips-box li::before {
+    content: '→';
+    position: absolute; left: 0;
+    color: var(--pink);
+  }
+
+  /* ─── CREATE PLAN ─── */
+  #create-plan { background: var(--black); }
+  .plan-builder {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+  .plan-form-col { display: flex; flex-direction: column; gap: 1.5rem; }
+  .field-group { display: flex; flex-direction: column; gap: 0.5rem; }
+  .field-group label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .field-group input,
+  .field-group select,
+  .field-group textarea {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 0.8rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    outline: none;
+    resize: vertical;
+    width: 100%;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+  .field-group input:focus,
+  .field-group select:focus,
+  .field-group textarea:focus { border-color: var(--green); }
+  .field-group input::placeholder,
+  .field-group textarea::placeholder { color: #444; }
+
+  .exercise-picker {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    padding: 1.2rem;
+  }
+  .exercise-picker h4 {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+  }
+  .exercise-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  .ex-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--grey);
+    padding: 0.5rem 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    user-select: none;
+  }
+  .ex-chip:hover { border-color: var(--green); color: var(--green); }
+  .ex-chip.selected { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+  .plan-preview {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .plan-preview h3 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+    color: var(--green);
+  }
+  .preview-day {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    padding: 0.8rem 1rem;
+  }
+  .preview-day-title {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--pink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+  }
+  .preview-exercise {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.35rem 0;
+    font-size: 0.82rem;
+    color: var(--grey);
+  }
+  .preview-exercise::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .empty-preview {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.75rem; opacity: 0.4;
+  }
+  .empty-preview span { font-size: 2rem; }
+  .empty-preview p { font-family: var(--font-mono); font-size: 0.75rem; color: var(--grey); text-align: center; }
+  .save-plan-btn {
+    background: var(--pink);
+    color: var(--white);
+    border: none;
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .save-plan-btn:hover { background: #ff4d8d; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,45,120,0.3); }
+
+  /* ─── MY PLANS ─── */
+  #my-plans { background: var(--dark); }
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  .plan-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    display: flex; flex-direction: column; gap: 1rem;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+  }
+  .plan-card:hover { border-color: var(--green); transform: translateY(-4px); }
+  .plan-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .plan-card-name {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    color: var(--white);
+    line-height: 1.1;
+  }
+  .plan-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid;
+  }
+  .plan-badge.strength { border-color: var(--green); color: var(--green); }
+  .plan-badge.hypertrophy { border-color: var(--pink); color: var(--pink); }
+  .plan-badge.cardio { border-color: #ffae00; color: #ffae00; }
+  .plan-badge.general { border-color: var(--grey); color: var(--grey); }
+  .plan-card-days {
+    display: flex; gap: 0.4rem; flex-wrap: wrap;
+  }
+  .day-dot {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--grey);
+  }
+  .day-dot.active { border-color: var(--green); color: var(--green); background: rgba(57,255,20,0.08); }
+  .plan-card-exercises { font-size: 0.8rem; color: var(--grey); line-height: 1.6; }
+  .plan-card-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 0.8rem;
+  }
+  .plan-meta-item { font-family: var(--font-mono); font-size: 0.65rem; color: var(--grey); }
+  .plan-meta-item strong { color: var(--white); }
+  .plan-delete {
+    background: transparent; border: none;
+    color: var(--grey); cursor: pointer; font-size: 0.8rem;
+    transition: color 0.2s;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+  }
+  .plan-delete:hover { color: var(--pink); }
+  .empty-plans {
+    grid-column: 1/-1;
+    text-align: center; padding: 4rem 1rem;
+    opacity: 0.5;
+  }
+  .empty-plans span { font-size: 3rem; display: block; margin-bottom: 1rem; }
+  .empty-plans p { font-family: var(--font-mono); font-size: 0.8rem; color: var(--grey); }
+
+  /* ─── HOW IT WORKS ─── */
+  #how-it-works { background: var(--black); }
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+  .step-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .step-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--green);
+  }
+  .step-card:nth-child(even)::before { background: var(--pink); }
+  .step-num {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    color: rgba(255,255,255,0.05);
+    position: absolute;
+    top: -0.5rem; right: 1rem;
+    line-height: 1;
+  }
+  .step-icon { font-size: 2rem; margin-bottom: 1rem; }
+  .step-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.6rem;
+    color: var(--white);
+  }
+  .step-desc { font-size: 0.82rem; color: var(--grey); line-height: 1.6; }
+
+  /* ─── EXERCISES LIBRARY ─── */
+  #exercises { background: var(--dark); }
+  .exercise-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .exercise-lib-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .exercise-lib-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s;
+  }
+  .exercise-lib-card:hover::after { transform: scaleX(1); }
+  .exercise-lib-card:hover { border-color: var(--green); }
+  .exercise-lib-icon { font-size: 1.8rem; margin-bottom: 0.6rem; }
+  .exercise-lib-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: 1px;
+    color: var(--white);
+    margin-bottom: 0.3rem;
+  }
+  .exercise-lib-muscle {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .exercise-lib-desc {
+    font-size: 0.75rem;
+    color: var(--grey);
+    margin-top: 0.5rem;
+    line-height: 1.5;
+  }
+  .exercise-lib-badge {
+    position: absolute; top: 0.8rem; right: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--pink);
+    border: 1px solid var(--pink-dim);
+    padding: 0.15rem 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--dark);
+    border-top: 1px solid var(--border);
+    padding: 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    letter-spacing: 2px;
+  }
+  .footer-logo span { color: var(--green); }
+  .footer-tagline {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--grey);
+    letter-spacing: 1px;
+  }
+  .footer-copy {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: #444;
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 999;
+    background: var(--card);
+    border: 1px solid var(--green);
+    color: var(--white);
+    padding: 1rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    max-width: 320px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.pink { border-color: var(--pink); }
+  .toast-title { font-weight: 700; margin-bottom: 0.2rem; color: var(--green); }
+  .toast.pink .toast-title { color: var(--pink); }
+
+  /* ─── MODAL ─── */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+  }
+  .modal h3 {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+    color: var(--green);
+  }
+  .modal p { font-size: 0.85rem; color: var(--grey); line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: none; border: none;
+    color: var(--grey); cursor: pointer; font-size: 1.2rem;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--pink); }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .scanning { animation: pulse 1.5s ease-in-out infinite; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    nav { padding: 0 1.5rem; }
+    .nav-links { display: none; }
+    section { padding: 4rem 1.5rem; }
+    .form-check-layout { grid-template-columns: 1fr; }
+    .plan-builder { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: 1fr 1fr; }
+    .hero-stats { gap: 1.5rem; }
+  }
+  @media (max-width: 600px) {
+    #hero { padding: 100px 1.5rem 3rem; }
+    .hero-btns { flex-direction: column; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .exercise-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── NAV ─── -->
+<nav>
+  <div class="nav-logo">Train<span>Tracks</span></div>
+  <ul class="nav-links">
+    <li><a href="#form-check">Form Check</a></li>
+    <li><a href="#create-plan">Create Plan</a></li>
+    <li><a href="#my-plans">My Plans</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#how-it-works">How It Works</a></li>
+  </ul>
+  <button class="nav-cta" onclick="document.getElementById('form-check').scrollIntoView({behavior:'smooth'})">Start Training →</button>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section id="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow-pink"></div>
+  <div class="hero-content">
+    <div class="hero-tag">// AI-Powered Form Tracking</div>
+    <h1 class="hero-title">
+      Train<br/>
+      <span class="accent-green">Smarter.</span><br/>
+      Move <span class="accent-pink">Right.</span>
+    </h1>
+    <p class="hero-sub">Use your camera to analyse your form in real-time. Get instant feedback on every rep — no trainer required.</p>
+    <div class="hero-btns">
+      <a href="#form-check" class="btn-primary">📷 Check My Form</a>
+      <a href="#create-plan" class="btn-secondary">📋 Build a Plan</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-num">12+</span>
+        <span class="stat-label">Exercises tracked</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num pink">Real</span>
+        <span class="stat-label">-time feedback</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">100%</span>
+        <span class="stat-label">Free to use</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FORM CHECK ─── -->
+<section id="form-check">
+  <div class="section-header">
+    <div class="section-tag green">// Section 01</div>
+    <h2 class="section-title">Check Your <span class="g">Form!</span></h2>
+    <p style="color:var(--grey);font-size:0.9rem;margin-top:0.75rem;max-width:500px;">Point your camera at yourself, select an exercise, and get live coaching cues as you move.</p>
+  </div>
+  <div class="form-check-layout">
+    <div>
+      <div class="camera-container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="pose-canvas"></canvas>
+        <div class="camera-overlay-idle" id="camera-overlay">
+          <div class="camera-icon">📷</div>
+          <p>Select an exercise and press <strong style="color:var(--green)">Start Session</strong> to begin live form analysis</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
+        <div style="background:var(--card);border:1px solid var(--border);padding:0.5rem 0.8rem;font-family:var(--font-mono);font-size:0.65rem;color:var(--grey);">
+          Status: <span id="status-text" style="color:var(--green);">Idle</span>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:0.5rem 0.8rem;font-family:var(--font-mono);font-size:0.65rem;color:var(--grey);">
+          Rep count: <span id="rep-count" style="color:var(--pink);font-weight:700;">0</span>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);padding:0.5rem 0.8rem;font-family:var(--font-mono);font-size:0.65rem;color:var(--grey);">
+          Form score: <span id="form-score" style="color:var(--green);font-weight:700;">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feedback-panel">
+      <div class="exercise-selector">
+        <label>Select Exercise</label>
+        <select id="exercise-select">
+          <option value="rdl">Romanian Deadlift (RDL)</option>
+          <option value="squat">Squat</option>
+          <option value="pushup">Push-Up</option>
+          <option value="bicep_curl">Bicep Curl</option>
+          <option value="shoulder_press">Shoulder Press</option>
+          <option value="lunge">Lunge</option>
+          <option value="hip_hinge">Hip Hinge</option>
+          <option value="deadlift">Conventional Deadlift</option>
+        </select>
+      </div>
+
+      <button class="start-btn" id="start-btn" onclick="startSession()">📷 Start Session</button>
+      <button class="stop-btn" id="stop-btn" onclick="stopSession()">■ Stop Session</button>
+
+      <div class="angle-display">
+        <h4>Live Joint Angles</h4>
+        <div class="angle-grid">
+          <div class="angle-item">
+            <div class="angle-val" id="angle-hip">—°</div>
+            <div class="angle-label">Hip</div>
+          </div>
+          <div class="angle-item">
+            <div class="angle-val" id="angle-knee">—°</div>
+            <div class="angle-label">Knee</div>
+          </div>
+          <div class="angle-item">
+            <div class="angle-val" id="angle-back">—°</div>
+            <div class="angle-label">Back</div>
+          </div>
+          <div class="angle-item">
+            <div class="angle-val" id="angle-elbow">—°</div>
+            <div class="angle-label">Elbow</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feedback-card">
+        <h4>Live Feedback</h4>
+        <div id="feedback-list">
+          <div class="feedback-item">
+            <div class="feedback-dot"></div>
+            <div class="feedback-text">Start a session to get feedback
+              <span>Position yourself so your full body is visible</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tips-box" id="tips-box">
+        <h4>RDL Tips</h4>
+        <ul id="tips-list">
+          <li>Keep the bar/dumbbell close to your body throughout</li>
+          <li>Hinge at hips, not waist — push hips backward</li>
+          <li>Slight knee bend is fine, but don't turn it into a squat</li>
+          <li>Neutral spine — don't let your lower back round</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CREATE PLAN ─── -->
+<section id="create-plan">
+  <div class="section-header">
+    <div class="section-tag">// Section 02</div>
+    <h2 class="section-title">Create an <span class="p">Exercise Plan</span></h2>
+    <p style="color:var(--grey);font-size:0.9rem;margin-top:0.75rem;max-width:500px;">Build a personalised training plan, choose your exercises and save it for later.</p>
+  </div>
+  <div class="plan-builder">
+    <div class="plan-form-col">
+      <div class="field-group">
+        <label>Plan Name</label>
+        <input type="text" id="plan-name" placeholder="e.g. Push Pull Legs, 5x5 Strength..." />
+      </div>
+      <div class="field-group">
+        <label>Goal</label>
+        <select id="plan-goal">
+          <option value="strength">Strength</option>
+          <option value="hypertrophy">Hypertrophy / Size</option>
+          <option value="cardio">Cardio / Endurance</option>
+          <option value="general">General Fitness</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Days per week</label>
+        <select id="plan-days">
+          <option value="2">2 days</option>
+          <option value="3" selected>3 days</option>
+          <option value="4">4 days</option>
+          <option value="5">5 days</option>
+          <option value="6">6 days</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Notes</label>
+        <textarea id="plan-notes" rows="3" placeholder="Any extra notes..."></textarea>
+      </div>
+
+      <div class="exercise-picker">
+        <h4>Pick Exercises</h4>
+        <div class="exercise-grid" id="exercise-picker-grid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <button class="save-plan-btn" onclick="savePlan()">💾 Save Plan</button>
+    </div>
+
+    <div class="plan-preview" id="plan-preview">
+      <div class="empty-preview" id="preview-empty">
+        <span>📋</span>
+        <p>Your plan preview will<br/>appear here as you build it</p>
+      </div>
+      <div id="preview-content" style="display:none;flex-direction:column;gap:0.8rem;">
+        <div>
+          <h3 id="preview-name">My Plan</h3>
+          <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--grey);margin-top:0.2rem;" id="preview-meta"></div>
+        </div>
+        <div id="preview-days-container"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── MY PLANS ─── -->
+<section id="my-plans">
+  <div class="section-header">
+    <div class="section-tag green">// Section 03</div>
+    <h2 class="section-title">Your <span class="g">Plans</span></h2>
+    <p style="color:var(--grey);font-size:0.9rem;margin-top:0.75rem;max-width:500px;">All your saved training plans in one place.</p>
+  </div>
+  <div class="plans-grid" id="plans-grid">
+    <!-- filled by JS -->
+  </div>
+</section>
+
+<!-- ─── HOW IT WORKS ─── -->
+<section id="how-it-works">
+  <div class="section-header">
+    <div class="section-tag">// Section 04</div>
+    <h2 class="section-title">How It <span class="g">Works</span></h2>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-icon">📱</div>
+      <div class="step-title">Set Up Your Camera</div>
+      <p class="step-desc">Place your phone or laptop so your full body is in frame — side-on works best for most exercises.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-icon">🏋️</div>
+      <div class="step-title">Choose Your Exercise</div>
+      <p class="step-desc">Select from our library of tracked movements — from RDLs to push-ups and squats.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-icon">🤖</div>
+      <div class="step-title">AI Tracks Your Skeleton</div>
+      <p class="step-desc">MediaPipe Pose maps 33 body landmarks in real-time, calculating joint angles on every frame.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-icon">✅</div>
+      <div class="step-title">Get Instant Cues</div>
+      <p class="step-desc">Live colour-coded feedback tells you exactly what to adjust — back angle, knee depth, shoulder position and more.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── EXERCISES ─── -->
+<section id="exercises">
+  <div class="section-header">
+    <div class="section-tag green">// Section 05</div>
+    <h2 class="section-title">Exercise <span class="p">Library</span></h2>
+    <p style="color:var(--grey);font-size:0.9rem;margin-top:0.75rem;max-width:500px;">Every tracked movement — what we analyse and the key cues we look for.</p>
+  </div>
+  <div class="exercise-cards" id="exercise-library">
+    <!-- filled by JS -->
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div>
+    <div class="footer-logo">Train<span>Tracks</span></div>
+    <div class="footer-tagline">Move Right. Train Smart.</div>
+  </div>
+  <div class="footer-copy">© 2025 TrainTracks. Built with MediaPipe Pose.</div>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toast-title">Saved!</div>
+  <div id="toast-msg">Your plan has been saved.</div>
+</div>
+
+<!-- Plan detail modal -->
+<div class="modal-backdrop" id="plan-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 id="modal-plan-name">Plan Name</h3>
+    <p id="modal-plan-detail">Details here</p>
+    <button class="start-btn" style="margin-top:0.5rem;" onclick="closeModal();document.getElementById('form-check').scrollIntoView({behavior:'smooth'})">📷 Start Form Check</button>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───
+const EXERCISES_DB = [
+  { id:'rdl', name:'Romanian Deadlift', icon:'🏋️', muscle:'Hamstrings / Glutes', badge:'Hip Hinge', desc:'Hinge at the hips with a straight back, bar tracking close to the legs. We track hip angle, back angle, and knee bend.' },
+  { id:'squat', name:'Squat', icon:'🦵', muscle:'Quads / Glutes / Core', badge:'Compound', desc:'Sit back and down, knees tracking over toes, depth at parallel or below. We track knee angle, hip depth, and torso lean.' },
+  { id:'pushup', name:'Push-Up', icon:'💪', muscle:'Chest / Triceps / Shoulders', badge:'Bodyweight', desc:'Full lockout at top, chest to floor, elbows at 45°. We track elbow angle, hip alignment, and head position.' },
+  { id:'bicep_curl', name:'Bicep Curl', icon:'💪', muscle:'Biceps / Forearms', badge:'Isolation', desc:'Curl with control, elbows pinned to sides, wrists neutral. We track elbow angle and shoulder stability.' },
+  { id:'shoulder_press', name:'Shoulder Press', icon:'🙌', muscle:'Deltoids / Triceps', badge:'Push', desc:'Press overhead with locked core, wrists over elbows. We track elbow angle and bar path alignment.' },
+  { id:'lunge', name:'Lunge', icon:'🦵', muscle:'Quads / Glutes / Hamstrings', badge:'Compound', desc:'Step forward, back knee hovers above floor, front shin vertical. We track knee angle and torso uprightness.' },
+  { id:'hip_hinge', name:'Hip Hinge', icon:'🔄', muscle:'Posterior Chain', badge:'Pattern', desc:'Push hips back, soft knees, neutral spine. Foundation for RDLs and deadlifts. We track hip flexion and spine angle.' },
+  { id:'deadlift', name:'Conventional Deadlift', icon:'🏋️', muscle:'Full Body', badge:'Compound', desc:'Lift with hips and shoulders rising together, bar in contact with legs. We track hip angle, back angle, and bar path.' },
+  { id:'plank', name:'Plank', icon:'🧘', muscle:'Core / Shoulders', badge:'Isometric', desc:'Flat back, neutral hips, head in line with spine. We track hip height and shoulder alignment.' },
+  { id:'glute_bridge', name:'Glute Bridge', icon:'🍑', muscle:'Glutes / Hamstrings', badge:'Isolation', desc:'Drive hips to ceiling, squeeze at top, avoid hyperextending lower back. We track hip extension angle.' },
+  { id:'overhead_squat', name:'Overhead Squat', icon:'🏋️', muscle:'Full Body / Mobility', badge:'Advanced', desc:'Arms locked overhead throughout full squat depth. We track arm position, depth, and torso angle.' },
+  { id:'lateral_raise', name:'Lateral Raise', icon:'💪', muscle:'Lateral Deltoids', badge:'Isolation', desc:'Arms rise to shoulder height, slight forward tilt, controlled descent. We track elbow angle and symmetry.' },
+];
+
+const EXERCISE_TIPS = {
+  rdl: { title:'RDL Tips', tips:['Keep bar/dumbbell close to your body throughout','Hinge at hips, push hips backward','Slight knee bend is fine, but avoid turning it into a squat','Neutral spine — don\'t let lower back round'] },
+  squat: { title:'Squat Tips', tips:['Knees track over toes, don\'t cave inward','Sit back and down, not just down','Aim for parallel or below depth','Chest up, brace your core throughout'] },
+  pushup: { title:'Push-Up Tips', tips:['Keep elbows at 45° to your body','Straight line from head to heels','Full lockout at the top','Lower until chest nearly touches the floor'] },
+  bicep_curl: { title:'Bicep Curl Tips', tips:['Elbows stay pinned to your sides','Full range of motion — full extension at bottom','Don\'t swing — isolate the bicep','Control the descent, don\'t drop it'] },
+  shoulder_press: { title:'Shoulder Press Tips', tips:['Wrists stacked over elbows at the bottom','Press directly overhead, not forward','Core braced, avoid arching lower back','Full lockout at the top'] },
+  lunge: { title:'Lunge Tips', tips:['Front shin should stay vertical','Back knee hovers just above the floor','Torso upright, don\'t lean forward','Drive through the front heel to return'] },
+  hip_hinge: { title:'Hip Hinge Tips', tips:['Push your hips backward, don\'t just bend over','Soft bend in knees throughout','Maintain neutral spine from neck to tailbone','Feel the hamstring stretch as you hinge'] },
+  deadlift: { title:'Deadlift Tips', tips:['Hips and shoulders rise at the same rate','Bar stays in contact with your legs','Full lockout — hips through at the top','Brace hard before you pull'] },
+  plank: { title:'Plank Tips', tips:['Hips level with shoulders — no sagging or piking','Brace core as if about to take a punch','Breathe! Don\'t hold your breath','Keep neck neutral, gaze to the floor'] },
+  glute_bridge: { title:'Glute Bridge Tips', tips:['Drive through your heels, not your toes','Squeeze glutes hard at the top','Avoid pushing lower back into the movement','Hold 1–2 seconds at the top for activation'] },
+  overhead_squat: { title:'Overhead Squat Tips', tips:['Arms locked out overhead at all times','Wide grip for easier mobility','Push knees out as you descend','This requires good ankle and shoulder mobility'] },
+  lateral_raise: { title:'Lateral Raise Tips', tips:['Lead with elbows, not wrists','Stop at shoulder height — don\'t go higher','Slight forward lean helps target the lateral delt','Control the descent — don\'t let gravity do the work'] },
+};
+
+// ─── STATE ───
+let plans = JSON.parse(localStorage.getItem('traintrackPlans') || '[]');
+let selectedExercises = new Set();
+let cameraStream = null;
+let poseInstance = null;
+let animFrame = null;
+let repCount = 0;
+let lastHipAngle = null;
+let repPhase = 'up'; // 'up' or 'down'
+let formScore = 100;
+let formIssues = [];
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', () => {
+  renderExercisePicker();
+  renderLibrary();
+  renderPlans();
+  listenPlanPreview();
+});
+
+// ─── EXERCISE PICKER ───
+function renderExercisePicker() {
+  const grid = document.getElementById('exercise-picker-grid');
+  grid.innerHTML = EXERCISES_DB.map(ex => `
+    <div class="ex-chip" data-id="${ex.id}" onclick="toggleExercise('${ex.id}', this)">${ex.name}</div>
+  `).join('');
+}
+
+function toggleExercise(id, el) {
+  if (selectedExercises.has(id)) {
+    selectedExercises.delete(id);
+    el.classList.remove('selected');
+  } else {
+    selectedExercises.add(id);
+    el.classList.add('selected');
+  }
+  updatePlanPreview();
+}
+
+// ─── PLAN PREVIEW ───
+function listenPlanPreview() {
+  document.getElementById('plan-name').addEventListener('input', updatePlanPreview);
+  document.getElementById('plan-goal').addEventListener('change', updatePlanPreview);
+  document.getElementById('plan-days').addEventListener('change', updatePlanPreview);
+}
+
+function updatePlanPreview() {
+  const name = document.getElementById('plan-name').value.trim() || 'My Plan';
+  const goal = document.getElementById('plan-goal').value;
+  const days = parseInt(document.getElementById('plan-days').value);
+  const exIds = [...selectedExercises];
+
+  const emptyEl = document.getElementById('preview-empty');
+  const contentEl = document.getElementById('preview-content');
+
+  if (exIds.length === 0) {
+    emptyEl.style.display = 'flex';
+    contentEl.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  contentEl.style.display = 'flex';
+
+  document.getElementById('preview-name').textContent = name;
+  document.getElementById('preview-meta').textContent = `${days} days/week · ${goal}`;
+
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const perDay = Math.ceil(exIds.length / days);
+  let html = '';
+  for (let d = 0; d < days; d++) {
+    const dayExs = exIds.slice(d * perDay, (d + 1) * perDay);
+    if (!dayExs.length) continue;
+    html += `<div class="preview-day">
+      <div class="preview-day-title">${dayNames[d]}</div>
+      ${dayExs.map(id => {
+        const ex = EXERCISES_DB.find(e => e.id === id);
+        return `<div class="preview-exercise">${ex ? ex.name : id}</div>`;
+      }).join('')}
+    </div>`;
+  }
+  document.getElementById('preview-days-container').innerHTML = html;
+}
+
+// ─── SAVE PLAN ───
+function savePlan() {
+  const name = document.getElementById('plan-name').value.trim();
+  if (!name) { showToast('Missing Name', 'Please give your plan a name!', true); return; }
+  if (selectedExercises.size === 0) { showToast('No Exercises', 'Pick at least one exercise.', true); return; }
+
+  const plan = {
+    id: Date.now(),
+    name,
+    goal: document.getElementById('plan-goal').value,
+    days: parseInt(document.getElementById('plan-days').value),
+    notes: document.getElementById('plan-notes').value,
+    exercises: [...selectedExercises],
+    created: new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+  };
+  plans.unshift(plan);
+  localStorage.setItem('traintrackPlans', JSON.stringify(plans));
+  renderPlans();
+  showToast('Plan Saved!', `"${name}" has been added to your plans.`);
+
+  // reset form
+  document.getElementById('plan-name').value = '';
+  document.getElementById('plan-notes').value = '';
+  selectedExercises.clear();
+  document.querySelectorAll('.ex-chip.selected').forEach(el => el.classList.remove('selected'));
+  document.getElementById('preview-empty').style.display = 'flex';
+  document.getElementById('preview-content').style.display = 'none';
+}
+
+// ─── RENDER PLANS ───
+function renderPlans() {
+  const grid = document.getElementById('plans-grid');
+  if (plans.length === 0) {
+    grid.innerHTML = `<div class="empty-plans"><span>🏋️</span><p>No plans yet — create your first one above!</p></div>`;
+    return;
+  }
+  const dayAbbr = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  grid.innerHTML = plans.map(plan => {
+    const activeDays = Array.from({length: plan.days}, (_, i) => i);
+    const badgeClass = plan.goal;
+    const exNames = plan.exercises.map(id => {
+      const ex = EXERCISES_DB.find(e => e.id === id);
+      return ex ? ex.name : id;
+    }).slice(0, 5).join(', ') + (plan.exercises.length > 5 ? '...' : '');
+
+    return `<div class="plan-card" onclick="openPlanModal(${plan.id})">
+      <div class="plan-card-header">
+        <div class="plan-card-name">${plan.name}</div>
+        <div class="plan-badge ${badgeClass}">${plan.goal}</div>
+      </div>
+      <div class="plan-card-days">
+        ${dayAbbr.map((d, i) => `<div class="day-dot ${activeDays.includes(i) ? 'active' : ''}">${d}</div>`).join('')}
+      </div>
+      <div class="plan-card-exercises">${exNames}</div>
+      <div class="plan-card-meta">
+        <div class="plan-meta-item">Created: <strong>${plan.created}</strong></div>
+        <div class="plan-meta-item">${plan.exercises.length} exercises</div>
+        <button class="plan-delete" onclick="deletePlan(event, ${plan.id})">✕ Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deletePlan(e, id) {
+  e.stopPropagation();
+  plans = plans.filter(p => p.id !== id);
+  localStorage.setItem('traintrackPlans', JSON.stringify(plans));
+  renderPlans();
+  showToast('Deleted', 'Plan removed.', true);
+}
+
+function openPlanModal(id) {
+  const plan = plans.find(p => p.id === id);
+  if (!plan) return;
+  document.getElementById('modal-plan-name').textContent = plan.name;
+  const exList = plan.exercises.map(id => {
+    const ex = EXERCISES_DB.find(e => e.id === id);
+    return ex ? `• ${ex.name}` : id;
+  }).join('\n');
+  document.getElementById('modal-plan-detail').textContent =
+    `Goal: ${plan.goal} | ${plan.days} days/week | ${plan.exercises.length} exercises\n\n${exList}${plan.notes ? '\n\nNotes: ' + plan.notes : ''}`;
+  document.getElementById('plan-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('plan-modal').classList.remove('open'); }
+
+// ─── EXERCISE LIBRARY ───
+function renderLibrary() {
+  const container = document.getElementById('exercise-library');
+  container.innerHTML = EXERCISES_DB.map(ex => `
+    <div class="exercise-lib-card" onclick="selectExerciseAndScroll('${ex.id}')">
+      <div class="exercise-lib-badge">${ex.badge}</div>
+      <div class="exercise-lib-icon">${ex.icon}</div>
+      <div class="exercise-lib-name">${ex.name}</div>
+      <div class="exercise-lib-muscle">${ex.muscle}</div>
+      <div class="exercise-lib-desc">${ex.desc}</div>
+    </div>
+  `).join('');
+}
+
+function selectExerciseAndScroll(id) {
+  document.getElementById('exercise-select').value = id;
+  updateTips(id);
+  document.getElementById('form-check').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ─── TIPS ───
+function updateTips(exId) {
+  const tips = EXERCISE_TIPS[exId] || EXERCISE_TIPS['rdl'];
+  document.querySelector('.tips-box h4').textContent = tips.title;
+  document.getElementById('tips-list').innerHTML = tips.tips.map(t => `<li>${t}</li>`).join('');
+}
+
+document.getElementById('exercise-select').addEventListener('change', function() {
+  updateTips(this.value);
+});
+
+// ─── CAMERA / POSE ───
+async function startSession() {
+  try {
+    document.getElementById('status-text').textContent = 'Starting…';
+    document.getElementById('status-text').classList.add('scanning');
+
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    const video = document.getElementById('webcam');
+    video.srcObject = cameraStream;
+    await new Promise(r => video.onloadedmetadata = r);
+
+    const canvas = document.getElementById('pose-canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    document.getElementById('camera-overlay').classList.add('hidden');
+    document.getElementById('start-btn').style.display = 'none';
+    document.getElementById('stop-btn').classList.add('visible');
+    document.getElementById('status-text').textContent = 'Detecting…';
+
+    repCount = 0;
+    formScore = 100;
+    formIssues = [];
+    document.getElementById('rep-count').textContent = '0';
+    document.getElementById('form-score').textContent = '—';
+
+    if (typeof Pose !== 'undefined') {
+      poseInstance = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
+      poseInstance.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+      });
+      poseInstance.onResults(onPoseResults);
+
+      const mpCamera = new Camera(video, {
+        onFrame: async () => { await poseInstance.send({ image: video }); },
+        width: 640, height: 480
+      });
+      mpCamera.start();
+      window._mpCamera = mpCamera;
+    } else {
+      // Fallback: simulate angles for demo
+      simulateDemo();
+    }
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('status-text').textContent = 'Camera error';
+    document.getElementById('status-text').classList.remove('scanning');
+    showToast('Camera Error', 'Could not access camera. Please grant permission and try again.', true);
+    document.getElementById('start-btn').style.display = 'block';
+    document.getElementById('stop-btn').classList.remove('visible');
+  }
+}
+
+function stopSession() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  if (window._mpCamera) {
+    try { window._mpCamera.stop(); } catch(e){}
+    window._mpCamera = null;
+  }
+  if (animFrame) { clearInterval(animFrame); animFrame = null; }
+  const video = document.getElementById('webcam');
+  video.srcObject = null;
+
+  document.getElementById('camera-overlay').classList.remove('hidden');
+  document.getElementById('start-btn').style.display = 'block';
+  document.getElementById('stop-btn').classList.remove('visible');
+  document.getElementById('status-text').textContent = 'Idle';
+  document.getElementById('status-text').classList.remove('scanning');
+
+  const canvas = document.getElementById('pose-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  document.getElementById('angle-hip').textContent = '—°';
+  document.getElementById('angle-knee').textContent = '—°';
+  document.getElementById('angle-back').textContent = '—°';
+  document.getElementById('angle-elbow').textContent = '—°';
+
+  document.getElementById('feedback-list').innerHTML = `
+    <div class="feedback-item">
+      <div class="feedback-dot"></div>
+      <div class="feedback-text">Session ended — Rep count: ${repCount}
+        <span>Final form score: ${document.getElementById('form-score').textContent}</span>
+      </div>
+    </div>`;
+}
+
+function calcAngle(a, b, c) {
+  const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+  let angle = Math.abs(radians * 180 / Math.PI);
+  if (angle > 180) angle = 360 - angle;
+  return Math.round(angle);
+}
+
+function onPoseResults(results) {
+  const canvas = document.getElementById('pose-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!results.poseLandmarks) return;
+
+  if (typeof drawConnectors !== 'undefined') {
+    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: 'rgba(57,255,20,0.7)', lineWidth: 2 });
+    drawLandmarks(ctx, results.poseLandmarks, { color: '#ff2d78', lineWidth: 1, radius: 4 });
+  }
+
+  const lm = results.poseLandmarks;
+  const exId = document.getElementById('exercise-select').value;
+
+  // Key indices: 11=left shoulder, 12=right shoulder, 23=left hip, 24=right hip
+  //              25=left knee, 26=right knee, 27=left ankle, 28=right ankle
+  //              13=left elbow, 14=right elbow, 15=left wrist, 16=right wrist
+
+  let hipAngle = null, kneeAngle = null, backAngle = null, elbowAngle = null;
+
+  try {
+    // Hip angle (shoulder-hip-knee)
+    hipAngle = calcAngle(lm[12], lm[24], lm[26]);
+    // Knee angle (hip-knee-ankle)
+    kneeAngle = calcAngle(lm[24], lm[26], lm[28]);
+    // Back angle (hip-shoulder using vertical reference)
+    const hipMid = { x:(lm[23].x+lm[24].x)/2, y:(lm[23].y+lm[24].y)/2 };
+    const shoulderMid = { x:(lm[11].x+lm[12].x)/2, y:(lm[11].y+lm[12].y)/2 };
+    const vertRef = { x: hipMid.x, y: hipMid.y - 0.2 };
+    backAngle = calcAngle(vertRef, hipMid, shoulderMid);
+    // Elbow
+    elbowAngle = calcAngle(lm[12], lm[14], lm[16]);
+  } catch(e) {}
+
+  if (hipAngle !== null) document.getElementById('angle-hip').textContent = hipAngle + '°';
+  if (kneeAngle !== null) document.getElementById('angle-knee').textContent = kneeAngle + '°';
+  if (backAngle !== null) document.getElementById('angle-back').textContent = backAngle + '°';
+  if (elbowAngle !== null) document.getElementById('angle-elbow').textContent = elbowAngle + '°';
+
+  // Rep counting + form feedback
+  analyseForm(exId, hipAngle, kneeAngle, backAngle, elbowAngle);
+  document.getElementById('status-text').classList.remove('scanning');
+  document.getElementById('status-text').textContent = 'Tracking ✓';
+}
+
+function analyseForm(exId, hip, knee, back, elbow) {
+  let issues = [];
+  let score = 100;
+
+  if (exId === 'rdl') {
+    if (back !== null && back > 45) { issues.push({ label:'Back rounding', detail:'Keep spine neutral — don\'t round forward', type:'bad' }); score -= 25; }
+    if (knee !== null && knee < 140) { issues.push({ label:'Too much knee bend', detail:'RDL is a hip hinge, not a squat', type:'warn' }); score -= 15; }
+    if (hip !== null && hip > 160) { issues.push({ label:'Not hinging enough', detail:'Push your hips back further', type:'warn' }); score -= 10; }
+    if (hip !== null && hip < 70) { issues.push({ label:'Going too deep', detail:'Stop when you feel hamstring stretch', type:'warn' }); score -= 10; }
+    // Rep counting: hip angle drops then rises
+    if (hip !== null) {
+      if (repPhase === 'up' && hip < 100) { repPhase = 'down'; }
+      else if (repPhase === 'down' && hip > 150) { repPhase = 'up'; repCount++; document.getElementById('rep-count').textContent = repCount; }
+    }
+  } else if (exId === 'squat') {
+    if (knee !== null && knee > 100) { issues.push({ label:'Not deep enough', detail:'Aim for thighs parallel to floor', type:'warn' }); score -= 20; }
+    if (back !== null && back > 50) { issues.push({ label:'Too much forward lean', detail:'Keep chest up, torso more upright', type:'bad' }); score -= 20; }
+    if (knee !== null && knee < 40) { issues.push({ label:'Excellent depth!', detail:'Great range of motion', type:'good' }); }
+    if (knee !== null) {
+      if (repPhase === 'up' && knee < 90) { repPhase = 'down'; }
+      else if (repPhase === 'down' && knee > 150) { repPhase = 'up'; repCount++; document.getElementById('rep-count').textContent = repCount; }
+    }
+  } else if (exId === 'pushup') {
+    if (elbow !== null && elbow > 90 && elbow < 145) { issues.push({ label:'Good depth', detail:'Keep it up!', type:'good' }); }
+    if (back !== null && back > 30) { issues.push({ label:'Hips too high or low', detail:'Keep a straight line head to heels', type:'bad' }); score -= 25; }
+    if (elbow !== null) {
+      if (repPhase === 'up' && elbow < 100) { repPhase = 'down'; }
+      else if (repPhase === 'down' && elbow > 155) { repPhase = 'up'; repCount++; document.getElementById('rep-count').textContent = repCount; }
+    }
+  } else {
+    // Generic feedback
+    if (back !== null && back < 20) issues.push({ label:'Posture looks good', detail:'Spine is nicely aligned', type:'good' });
+    if (back !== null && back > 45) { issues.push({ label:'Watch your posture', detail:'Try to keep spine more neutral', type:'warn' }); score -= 15; }
+  }
+
+  if (issues.length === 0) {
+    issues.push({ label:'Form looks great!', detail:'Keep it up — maintain this technique', type:'good' });
+  }
+
+  score = Math.max(0, score);
+  const scoreEl = document.getElementById('form-score');
+  scoreEl.textContent = score + '%';
+  scoreEl.style.color = score >= 80 ? 'var(--green)' : score >= 60 ? '#ffae00' : 'var(--pink)';
+
+  const feedbackList = document.getElementById('feedback-list');
+  feedbackList.innerHTML = issues.map(issue => `
+    <div class="feedback-item">
+      <div class="feedback-dot ${issue.type}"></div>
+      <div class="feedback-text">${issue.label}<span>${issue.detail}</span></div>
+    </div>
+  `).join('');
+}
+
+// Demo simulation if MediaPipe not loaded
+function simulateDemo() {
+  let t = 0;
+  animFrame = setInterval(() => {
+    t += 0.05;
+    const hip = Math.round(90 + 70 * Math.abs(Math.sin(t)));
+    const knee = Math.round(155 + 20 * Math.abs(Math.sin(t)));
+    const back = Math.round(15 + 10 * Math.abs(Math.sin(t + 0.5)));
+    const elbow = Math.round(120 + 40 * Math.abs(Math.sin(t * 1.2)));
+
+    document.getElementById('angle-hip').textContent = hip + '°';
+    document.getElementById('angle-knee').textContent = knee + '°';
+    document.getElementById('angle-back').textContent = back + '°';
+    document.getElementById('angle-elbow').textContent = elbow + '°';
+
+    analyseForm(document.getElementById('exercise-select').value, hip, knee, back, elbow);
+    document.getElementById('status-text').textContent = 'Demo mode ✓';
+    document.getElementById('status-text').classList.remove('scanning');
+  }, 100);
+}
+
+// ─── TOAST ───
+function showToast(title, msg, pink = false) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-msg').textContent = msg;
+  toast.className = 'toast' + (pink ? ' pink' : '');
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
