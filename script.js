@@ -9,5 +9,6 @@ const EXERCISES_DB = [
     { id:'deadlift', name:'Conventional Deadlift', icon:'🏋️', muscle:'Full Body', badge:'Compound', desc:'Lift with hips and shoulders rising together, bar in contact with legs. We track hip angle, back angle, and bar path.' },
     { id:'plank', name:'Plank', icon:'🧘', muscle:'Core / Shoulders', badge:'Isometric', desc:'Flat back, neutral hips, head in line with spine. We track hip height and shoulder alignment.' },
     { id:'glute_bridge', name:'Glute Bridge', icon:'🍑', muscle:'Glutes / Hamstrings', badge:'Isolation', desc:'Drive hips to ceiling, squeeze at top, avoid hyperextending lower back. We track hip extension angle.' },
-    { id:'overhead_squat', name:'Overhead Squat', icon:'🏋️', muscle:'Full Body / Mobility', badge:'Advanced', desc:'Arms locked overhead throughout full squat depth. We track arm position, depth, and torso angle.' }
-]
+    { id:'overhead_squat', name:'Overhead Squat', icon:'🏋️', muscle:'Full Body / Mobility', badge:'Advanced', desc:'Arms locked overhead throughout full squat depth. We track arm position, depth, and torso angle.' },
+    { id:'lateral_raise', name:'Lateral Raise', icon:'💪', muscle:'Lateral Deltoids', badge:'Isolation', desc:'Arms rise to shoulder height, slight forward tilt, controlled descent. We track elbow angle and symmetry.' },
+];
