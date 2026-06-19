@@ -55,3 +55,12 @@ document.addEventListener('DOMContentLoaded', () => {
         initFormCheckPage();
     }
 });
+
+// - highlights the current page's nav link
+function setActiveNavLink() {
+  const path = window.location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    const href = a.getAttribute('href').split('#')[0] || 'index.html';
+    if (href === path) a.classList.add('active');
+  });
+}
