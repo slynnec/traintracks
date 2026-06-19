@@ -83,3 +83,47 @@ function toggleExercise(id, el) {
   }
   updatePlanPreview();
 }
+
+// - plan review (create-plan page)
+function listenPlanPreview() {
+  document.getElementById('plan-name').addEventListener('input', updatePlanPreview);
+  document.getElementById('plan-goal').addEventListener('change', updatePlanPreview);
+  document.getElementById('plan-days').addEventListener('change', updatePlanPreview);
+}
+ 
+function updatePlanPreview() {
+  const name = document.getElementById('plan-name').value.trim() || 'My Plan';
+  const goal = document.getElementById('plan-goal').value;
+  const days = parseInt(document.getElementById('plan-days').value);
+  const exIds = [...selectedExercises];
+ 
+  const emptyEl = document.getElementById('preview-empty');
+  const contentEl = document.getElementById('preview-content');
+ 
+  if (exIds.length === 0) {
+    emptyEl.style.display = 'flex';
+    contentEl.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  contentEl.style.display = 'flex';
+ 
+  document.getElementById('preview-name').textContent = name;
+  document.getElementById('preview-meta').textContent = `${days} days/week · ${goal}`;
+ 
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const perDay = Math.ceil(exIds.length / days);
+  let html = '';
+  for (let d = 0; d < days; d++) {
+    const dayExs = exIds.slice(d * perDay, (d + 1) * perDay);
+    if (!dayExs.length) continue;
+    html += `<div class="preview-day">
+      <div class="preview-day-title">${dayNames[d]}</div>
+      ${dayExs.map(id => {
+        const ex = EXERCISES_DB.find(e => e.id === id);
+        return `<div class="preview-exercise">${ex ? ex.name : id}</div>`;
+      }).join('')}
+    </div>`;
+  }
+  document.getElementById('preview-days-container').innerHTML = html;
+}
