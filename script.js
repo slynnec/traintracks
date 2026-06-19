@@ -72,3 +72,14 @@ function renderExercisePicker() {
     <div class="ex-chip" data-id="${ex.id}" onclick="toggleExercise('${ex.id}', this)">${ex.name}</div>
   `).join('');
 }
+
+function toggleExercise(id, el) {
+  if (selectedExercises.has(id)) {
+    selectedExercises.delete(id);
+    el.classList.remove('selected');
+  } else {
+    selectedExercises.add(id);
+    el.classList.add('selected');
+  }
+  updatePlanPreview();
+}
