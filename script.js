@@ -474,3 +474,14 @@ function simulateDemo() {
     document.getElementById('status-text').classList.remove('scanning');
   }, 100);
 }
+
+// - toast
+function showToast(title, msg, pink = false) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-msg').textContent = msg;
+  toast.className = 'toast' + (pink ? ' pink' : '');
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
