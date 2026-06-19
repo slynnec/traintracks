@@ -127,3 +127,31 @@ function updatePlanPreview() {
   }
   document.getElementById('preview-days-container').innerHTML = html;
 }
+
+// - save the plan (create-plan page)
+function savePlan() {
+  const name = document.getElementById('plan-name').value.trim();
+  if (!name) { showToast('Missing Name', 'Please give your plan a name!', true); return; }
+  if (selectedExercises.size === 0) { showToast('No Exercises', 'Pick at least one exercise.', true); return; }
+ 
+  const plan = {
+    id: Date.now(),
+    name,
+    goal: document.getElementById('plan-goal').value,
+    days: parseInt(document.getElementById('plan-days').value),
+    notes: document.getElementById('plan-notes').value,
+    exercises: [...selectedExercises],
+    created: new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+  };
+  plans.unshift(plan);
+  localStorage.setItem('traintrackPlans', JSON.stringify(plans));
+  showToast('Plan Saved!', `"${name}" has been added to your plans. View it on the My Plans page.`);
+ 
+  // reset form
+  document.getElementById('plan-name').value = '';
+  document.getElementById('plan-notes').value = '';
+  selectedExercises.clear();
+  document.querySelectorAll('.ex-chip.selected').forEach(el => el.classList.remove('selected'));
+  document.getElementById('preview-empty').style.display = 'flex';
+  document.getElementById('preview-content').style.display = 'none';
+}
