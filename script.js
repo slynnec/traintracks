@@ -36,3 +36,22 @@ let animFrame = null;
 let repCount = 0;
 let repPhase = 'up';
 
+// - page INIT (each page only has the elements it needs,
+//   so every render function is guarded behind an existence check)
+document.addEventListener('DOMContentLoaded', () => {
+    setActiveNavLink();
+
+    if (document.getElementById('exercise-picker-grid')) {
+        renderExercisePicker();
+        listenPlanPreview();
+    }
+    if (document.getElementById('plans-grid')) {
+        renderPlans();
+    }
+    if (document.getElementById('exercise-library')) {
+        renderLibrary();
+    }
+    if (document.getElementById('exercise-select')) {
+        initFormCheckPage();
+    }
+});
