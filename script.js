@@ -235,3 +235,10 @@ function renderLibrary() {
 function selectExerciseAndScroll(id) {
   window.location.href = 'index.html?exercise=' + id + '#form-check';
 }
+
+// - tips page!
+function updateTips(exId) {
+  const tips = EXERCISE_TIPS[exId] || EXERCISE_TIPS['rdl'];
+  document.querySelector('.tips-box h4').textContent = tips.title;
+  document.getElementById('tips-list').innerHTML = tips.tips.map(t => `<li>${t}</li>`).join('');
+}
