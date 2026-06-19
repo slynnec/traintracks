@@ -259,3 +259,218 @@ function initFormCheckPage() {
     updateTips(this.value);
   });
 }
+
+// - camera / pose (form check page only!!)
+async function startSession() {
+  try {
+    document.getElementById('status-text').textContent = 'Starting…';
+    document.getElementById('status-text').classList.add('scanning');
+ 
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    const video = document.getElementById('webcam');
+    video.srcObject = cameraStream;
+    await new Promise(r => video.onloadedmetadata = r);
+ 
+    const canvas = document.getElementById('pose-canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+ 
+    document.getElementById('camera-overlay').classList.add('hidden');
+    document.getElementById('start-btn').style.display = 'none';
+    document.getElementById('stop-btn').classList.add('visible');
+    document.getElementById('status-text').textContent = 'Detecting…';
+ 
+    repCount = 0;
+    document.getElementById('rep-count').textContent = '0';
+    document.getElementById('form-score').textContent = '—';
+ 
+    if (typeof Pose !== 'undefined') {
+      poseInstance = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
+      poseInstance.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+      });
+      poseInstance.onResults(onPoseResults);
+ 
+      const mpCamera = new Camera(video, {
+        onFrame: async () => { await poseInstance.send({ image: video }); },
+        width: 640, height: 480
+      });
+      mpCamera.start();
+      window._mpCamera = mpCamera;
+    } else {
+      // Fallback: simulate angles for demo
+      simulateDemo();
+    }
+ 
+  } catch (err) {
+    console.error(err);
+    document.getElementById('status-text').textContent = 'Camera error';
+    document.getElementById('status-text').classList.remove('scanning');
+    showToast('Camera Error', 'Could not access camera. Please grant permission and try again.', true);
+    document.getElementById('start-btn').style.display = 'block';
+    document.getElementById('stop-btn').classList.remove('visible');
+  }
+}
+ 
+function stopSession() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  if (window._mpCamera) {
+    try { window._mpCamera.stop(); } catch(e){}
+    window._mpCamera = null;
+  }
+  if (animFrame) { clearInterval(animFrame); animFrame = null; }
+  const video = document.getElementById('webcam');
+  video.srcObject = null;
+ 
+  document.getElementById('camera-overlay').classList.remove('hidden');
+  document.getElementById('start-btn').style.display = 'block';
+  document.getElementById('stop-btn').classList.remove('visible');
+  document.getElementById('status-text').textContent = 'Idle';
+  document.getElementById('status-text').classList.remove('scanning');
+ 
+  const canvas = document.getElementById('pose-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+ 
+  document.getElementById('angle-hip').textContent = '—°';
+  document.getElementById('angle-knee').textContent = '—°';
+  document.getElementById('angle-back').textContent = '—°';
+  document.getElementById('angle-elbow').textContent = '—°';
+ 
+  document.getElementById('feedback-list').innerHTML = `
+    <div class="feedback-item">
+      <div class="feedback-dot"></div>
+      <div class="feedback-text">Session ended — Rep count: ${repCount}
+        <span>Final form score: ${document.getElementById('form-score').textContent}</span>
+      </div>
+    </div>`;
+}
+ 
+function calcAngle(a, b, c) {
+  const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+  let angle = Math.abs(radians * 180 / Math.PI);
+  if (angle > 180) angle = 360 - angle;
+  return Math.round(angle);
+}
+ 
+function onPoseResults(results) {
+  const canvas = document.getElementById('pose-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+ 
+  if (!results.poseLandmarks) return;
+ 
+  if (typeof drawConnectors !== 'undefined') {
+    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, { color: 'rgba(57,255,20,0.7)', lineWidth: 2 });
+    drawLandmarks(ctx, results.poseLandmarks, { color: '#ff2d78', lineWidth: 1, radius: 4 });
+  }
+ 
+  const lm = results.poseLandmarks;
+  const exId = document.getElementById('exercise-select').value;
+ 
+  // Key indices: 11=left shoulder, 12=right shoulder, 23=left hip, 24=right hip
+  //              25=left knee, 26=right knee, 27=left ankle, 28=right ankle
+  //              13=left elbow, 14=right elbow, 15=left wrist, 16=right wrist
+ 
+  let hipAngle = null, kneeAngle = null, backAngle = null, elbowAngle = null;
+ 
+  try {
+    hipAngle = calcAngle(lm[12], lm[24], lm[26]);
+    kneeAngle = calcAngle(lm[24], lm[26], lm[28]);
+    const hipMid = { x:(lm[23].x+lm[24].x)/2, y:(lm[23].y+lm[24].y)/2 };
+    const shoulderMid = { x:(lm[11].x+lm[12].x)/2, y:(lm[11].y+lm[12].y)/2 };
+    const vertRef = { x: hipMid.x, y: hipMid.y - 0.2 };
+    backAngle = calcAngle(vertRef, hipMid, shoulderMid);
+    elbowAngle = calcAngle(lm[12], lm[14], lm[16]);
+  } catch(e) {}
+ 
+  if (hipAngle !== null) document.getElementById('angle-hip').textContent = hipAngle + '°';
+  if (kneeAngle !== null) document.getElementById('angle-knee').textContent = kneeAngle + '°';
+  if (backAngle !== null) document.getElementById('angle-back').textContent = backAngle + '°';
+  if (elbowAngle !== null) document.getElementById('angle-elbow').textContent = elbowAngle + '°';
+ 
+  analyseForm(exId, hipAngle, kneeAngle, backAngle, elbowAngle);
+  document.getElementById('status-text').classList.remove('scanning');
+  document.getElementById('status-text').textContent = 'Tracking ✓';
+}
+ 
+function analyseForm(exId, hip, knee, back, elbow) {
+  let issues = [];
+  let score = 100;
+ 
+  if (exId === 'rdl') {
+    if (back !== null && back > 45) { issues.push({ label:'Back rounding', detail:'Keep spine neutral — don\'t round forward', type:'bad' }); score -= 25; }
+    if (knee !== null && knee < 140) { issues.push({ label:'Too much knee bend', detail:'RDL is a hip hinge, not a squat', type:'warn' }); score -= 15; }
+    if (hip !== null && hip > 160) { issues.push({ label:'Not hinging enough', detail:'Push your hips back further', type:'warn' }); score -= 10; }
+    if (hip !== null && hip < 70) { issues.push({ label:'Going too deep', detail:'Stop when you feel hamstring stretch', type:'warn' }); score -= 10; }
+    if (hip !== null) {
+      if (repPhase === 'up' && hip < 100) { repPhase = 'down'; }
+      else if (repPhase === 'down' && hip > 150) { repPhase = 'up'; repCount++; document.getElementById('rep-count').textContent = repCount; }
+    }
+  } else if (exId === 'squat') {
+    if (knee !== null && knee > 100) { issues.push({ label:'Not deep enough', detail:'Aim for thighs parallel to floor', type:'warn' }); score -= 20; }
+    if (back !== null && back > 50) { issues.push({ label:'Too much forward lean', detail:'Keep chest up, torso more upright', type:'bad' }); score -= 20; }
+    if (knee !== null && knee < 40) { issues.push({ label:'Excellent depth!', detail:'Great range of motion', type:'good' }); }
+    if (knee !== null) {
+      if (repPhase === 'up' && knee < 90) { repPhase = 'down'; }
+      else if (repPhase === 'down' && knee > 150) { repPhase = 'up'; repCount++; document.getElementById('rep-count').textContent = repCount; }
+    }
+  } else if (exId === 'pushup') {
+    if (elbow !== null && elbow > 90 && elbow < 145) { issues.push({ label:'Good depth', detail:'Keep it up!', type:'good' }); }
+    if (back !== null && back > 30) { issues.push({ label:'Hips too high or low', detail:'Keep a straight line head to heels', type:'bad' }); score -= 25; }
+    if (elbow !== null) {
+      if (repPhase === 'up' && elbow < 100) { repPhase = 'down'; }
+      else if (repPhase === 'down' && elbow > 155) { repPhase = 'up'; repCount++; document.getElementById('rep-count').textContent = repCount; }
+    }
+  } else {
+    if (back !== null && back < 20) issues.push({ label:'Posture looks good', detail:'Spine is nicely aligned', type:'good' });
+    if (back !== null && back > 45) { issues.push({ label:'Watch your posture', detail:'Try to keep spine more neutral', type:'warn' }); score -= 15; }
+  }
+ 
+  if (issues.length === 0) {
+    issues.push({ label:'Form looks great!', detail:'Keep it up — maintain this technique', type:'good' });
+  }
+ 
+  score = Math.max(0, score);
+  const scoreEl = document.getElementById('form-score');
+  scoreEl.textContent = score + '%';
+  scoreEl.style.color = score >= 80 ? 'var(--green)' : score >= 60 ? '#ffae00' : 'var(--pink)';
+ 
+  const feedbackList = document.getElementById('feedback-list');
+  feedbackList.innerHTML = issues.map(issue => `
+    <div class="feedback-item">
+      <div class="feedback-dot ${issue.type}"></div>
+      <div class="feedback-text">${issue.label}<span>${issue.detail}</span></div>
+    </div>
+  `).join('');
+}
+ 
+// Demo simulation if MediaPipe not loaded
+function simulateDemo() {
+  let t = 0;
+  animFrame = setInterval(() => {
+    t += 0.05;
+    const hip = Math.round(90 + 70 * Math.abs(Math.sin(t)));
+    const knee = Math.round(155 + 20 * Math.abs(Math.sin(t)));
+    const back = Math.round(15 + 10 * Math.abs(Math.sin(t + 0.5)));
+    const elbow = Math.round(120 + 40 * Math.abs(Math.sin(t * 1.2)));
+ 
+    document.getElementById('angle-hip').textContent = hip + '°';
+    document.getElementById('angle-knee').textContent = knee + '°';
+    document.getElementById('angle-back').textContent = back + '°';
+    document.getElementById('angle-elbow').textContent = elbow + '°';
+ 
+    analyseForm(document.getElementById('exercise-select').value, hip, knee, back, elbow);
+    document.getElementById('status-text').textContent = 'Demo mode ✓';
+    document.getElementById('status-text').classList.remove('scanning');
+  }, 100);
+}
