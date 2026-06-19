@@ -155,3 +155,63 @@ function savePlan() {
   document.getElementById('preview-empty').style.display = 'flex';
   document.getElementById('preview-content').style.display = 'none';
 }
+
+// - render plans (my-plans page)
+function renderPlans() {
+  const grid = document.getElementById('plans-grid');
+  if (plans.length === 0) {
+    grid.innerHTML = `<div class="empty-plans"><span>🏋️</span><p>No plans yet — head to Create Plan to build your first one!</p></div>`;
+    return;
+  }
+  const dayAbbr = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  grid.innerHTML = plans.map(plan => {
+    const activeDays = Array.from({length: plan.days}, (_, i) => i);
+    const badgeClass = plan.goal;
+    const exNames = plan.exercises.map(id => {
+      const ex = EXERCISES_DB.find(e => e.id === id);
+      return ex ? ex.name : id;
+    }).slice(0, 5).join(', ') + (plan.exercises.length > 5 ? '...' : '');
+ 
+    return `<div class="plan-card" onclick="openPlanModal(${plan.id})">
+      <div class="plan-card-header">
+        <div class="plan-card-name">${plan.name}</div>
+        <div class="plan-badge ${badgeClass}">${plan.goal}</div>
+      </div>
+      <div class="plan-card-days">
+        ${dayAbbr.map((d, i) => `<div class="day-dot ${activeDays.includes(i) ? 'active' : ''}">${d}</div>`).join('')}
+      </div>
+      <div class="plan-card-exercises">${exNames}</div>
+      <div class="plan-card-meta">
+        <div class="plan-meta-item">Created: <strong>${plan.created}</strong></div>
+        <div class="plan-meta-item">${plan.exercises.length} exercises</div>
+        <button class="plan-delete" onclick="deletePlan(event, ${plan.id})">✕ Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+ 
+function deletePlan(e, id) {
+  e.stopPropagation();
+  plans = plans.filter(p => p.id !== id);
+  localStorage.setItem('traintrackPlans', JSON.stringify(plans));
+  renderPlans();
+  showToast('Deleted', 'Plan removed.', true);
+}
+ 
+function openPlanModal(id) {
+  const plan = plans.find(p => p.id === id);
+  if (!plan) return;
+  document.getElementById('modal-plan-name').textContent = plan.name;
+  const exList = plan.exercises.map(id => {
+    const ex = EXERCISES_DB.find(e => e.id === id);
+    return ex ? `• ${ex.name}` : id;
+  }).join('\n');
+  document.getElementById('modal-plan-detail').textContent =
+    `Goal: ${plan.goal} | ${plan.days} days/week | ${plan.exercises.length} exercises\n\n${exList}${plan.notes ? '\n\nNotes: ' + plan.notes : ''}`;
+  document.getElementById('plan-modal').classList.add('open');
+}
+function closeModal() {
+  const modal = document.getElementById('plan-modal');
+  if (modal) modal.classList.remove('open');
+}
+
