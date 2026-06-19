@@ -25,4 +25,14 @@ const EXERCISE_TIPS = {
     glute_bridge: { title:'Glute Bridge Tips', tips:['Drive through your heels, not your toes','Squeeze glutes hard at the top','Avoid pushing lower back into the movement','Hold 1–2 seconds at the top for activation'] },
     overhead_squat: { title:'Overhead Squat Tips', tips:['Arms locked out overhead at all times','Wide grip for easier mobility','Push knees out as you descend','This requires good ankle and shoulder mobility'] },
     lateral_raise: { title:'Lateral Raise Tips', tips:['Lead with elbows, not wrists','Stop at shoulder height — don\'t go higher','Slight forward lean helps target the lateral delt','Control the descent — don\'t let gravity do the work'] },
-}
+};
+
+// - state
+let plans = JSON.parse(localStorage.getItem('traintrackPlans') || '[]');
+let selectedExercises = new Set();
+let cameraStream = null;
+let poseInstance = null;
+let animFrame = null;
+let repCount = 0;
+let repPhase = 'up';
+
