@@ -64,3 +64,11 @@ function setActiveNavLink() {
     if (href === path) a.classList.add('active');
   });
 }
+
+// ─ exercise picker (create-plan page)
+function renderExercisePicker() {
+  const grid = document.getElementById('exercise-picker-grid');
+  grid.innerHTML = EXERCISES_DB.map(ex => `
+    <div class="ex-chip" data-id="${ex.id}" onclick="toggleExercise('${ex.id}', this)">${ex.name}</div>
+  `).join('');
+}
