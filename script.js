@@ -215,3 +215,23 @@ function closeModal() {
   if (modal) modal.classList.remove('open');
 }
 
+// - exercise library (exercises page)
+function renderLibrary() {
+  const container = document.getElementById('exercise-library');
+  container.innerHTML = EXERCISES_DB.map(ex => `
+    <div class="exercise-lib-card" onclick="selectExerciseAndScroll('${ex.id}')">
+      <div class="exercise-lib-badge">${ex.badge}</div>
+      <div class="exercise-lib-icon">${ex.icon}</div>
+      <div class="exercise-lib-name">${ex.name}</div>
+      <div class="exercise-lib-muscle">${ex.muscle}</div>
+      <div class="exercise-lib-desc">${ex.desc}</div>
+    </div>
+  `).join('');
+}
+ 
+// Picking an exercise from the library lives on a different page than the
+// camera, so this navigates to the Form Check page with the choice baked
+// into the URL (?exercise=id) instead of just scrolling.
+function selectExerciseAndScroll(id) {
+  window.location.href = 'index.html?exercise=' + id + '#form-check';
+}
