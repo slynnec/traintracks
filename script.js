@@ -242,3 +242,20 @@ function updateTips(exId) {
   document.querySelector('.tips-box h4').textContent = tips.title;
   document.getElementById('tips-list').innerHTML = tips.tips.map(t => `<li>${t}</li>`).join('');
 }
+
+// - form check page INIT
+function initFormCheckPage() {
+  const select = document.getElementById('exercise-select');
+ 
+  // If we arrived here from the Exercises page (?exercise=rdl), preselect it
+  const params = new URLSearchParams(window.location.search);
+  const preselect = params.get('exercise');
+  if (preselect && EXERCISES_DB.some(e => e.id === preselect)) {
+    select.value = preselect;
+  }
+  updateTips(select.value);
+ 
+  select.addEventListener('change', function () {
+    updateTips(this.value);
+  });
+}
